@@ -1,0 +1,42 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:18.2.0-ce.0
+    restart: always
+    hostname: ${GITLAB_DOMAIN}
+    environment:
+      VIRTUAL_HOST: ${GITLAB_DOMAIN}
+      LETSENCRYPT_HOST: ${GITLAB_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://${GITLAB_DOMAIN}'
+        gitlab_rails['gitlab_shell_ssh_port'] = ${GITLAB_SSH_PORT}
+        nginx['enable'] = false
+        letsencrypt['enable'] = false
+    expose:
+      - "80"
+    ports:
+      - "${GITLAB_SSH_PORT}:22"
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    shm_size: '256m'
+    networks:
+      - nginx_proxy-tier
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v18.2.0
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab-runner-config:/etc/gitlab-runner
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  gitlab-runner-config:
+
+networks:
+  nginx_proxy-tier:
+    external: true
